@@ -1,0 +1,132 @@
+---
+title: "MSDS 6306 First Coure Project"
+author: "Alec Lepe, Che Cobb, and Andrew Wilkins"
+date: "10/08/2018"
+output: 
+  html_document:
+    keep_md: true
+---
+```{r setup, include = FALSE}
+library("data.table")
+library("tidyverse")
+library('ggplot2')
+knitr::opts_chunk$set(fig.width = 10, fig.length=10, fig.asp = 1/3,  message=FALSE)
+```
+
+### URL
+https://github.com/lepealec/MSDS-6306-1st-Case-Study.git
+
+### Data description.
+
+### Load and preview data
+``` {r load data}
+setwd("~/MSDS-6306-1st-Case-Study/Guidlines")
+beers=fread("beers.csv")
+beers
+breweries=fread("breweries.csv")
+breweries
+```
+
+
+### How many breweries are the per state?
+By state,
+```{r breweries per state by state}
+ct_brew=table(breweries[["State"]])
+ct_brew[sort(names(ct_brew))]
+```
+
+1
+
+``` {r plot 1}
+breweries %>% ggplot(aes(x=State)) + geom_bar()+xlab("State")+ylab("Count") + 
+  scale_y_continuous(name="Count", labels = scales::comma) +
+  ggtitle("Brewery Count by State \nBy State")+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+2
+
+```{r breweries per state by rank}
+ct_brew[order(ct_brew)]
+breweries[order(breweries[["State"]]),]
+names(ct_brew[order(ct_brew)])
+
+breweries %>% ggplot( aes(x=reorder(State,State,
+                     function(x)-length(x)))) + geom_bar()+xlab("State")+ylab("Count") + 
+  scale_y_continuous(name="Count", labels = scales::comma) +
+  ggtitle("Brewery Count by State \nBy Rank")+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+Here we can see Colorado (CO), California (CA), and Michigan (MI) have the most breweries with 47, 39, and 32 breweries respectively.
+
+Contrastly, Washington DC (DC), North Dakota (ND), South Dakota (SD), and West Virginia (WV) have the fewest breweries: 1 per state.
+
+```{r total breweries}
+nrow(breweries)
+```
+
+There are a total of 558 breweries listed in the data set.
+
+``` {r merge data sets}
+colnames(breweries)[colnames(breweries)=="Brew_ID"]="Brewery_id"
+colnames(breweries)[colnames(breweries)=="Name"]="Brewery_Name"
+colnames(beers)[colnames(beers)=="Name"]="Beer_Name"
+combined_data=merge(beers,breweries,by="Brewery_id")
+nrow(breweries)
+nrow(combined_data)==nrow(beers)
+```
+First six observations
+``` {r head}
+head(combined_data)
+```
+Last six observations
+``` {r tail}
+tail(combined_data)
+```
+Sum of NA's per column
+``` {r sum of NA}
+apply(combined_data,2,function(x) sum(is.na(x)))
+```
+
+``` {r meds}
+abv=combined_data[,median(na.omit(as.numeric(ABV))),State]
+ibu=combined_data[,median(na.omit(as.numeric(IBU))),State]
+colnames(abv)[2]="ABV"
+colnames(ibu)[2]="IBU"
+meds=merge(ibu,abv,by="State")
+```
+
+Median IBU per State Plot
+``` {r IBU Plot}
+ggplot(meds,aes(reorder(meds$State,-meds$IBU), y = meds$IBU))+geom_bar(stat = "identity")+labs(x = "State" , y = "IBU") + 
+  ggtitle("Median IBU per State")+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+Median ABV per State Plot
+``` {r ABV plot}
+ggplot(meds,aes(reorder(meds$State,-meds$ABV), y = meds$ABV))+geom_bar(stat = "identity")+labs(x = "State" , y = "IBU") + 
+  ggtitle("Median ABV per State")+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+MAX ABV
+``` {r max abv}
+combined_data[which.max(ABV),]
+```
+
+Max IBU
+``` {r max ibu}
+combined_data[which.max(IBU),]
+```
+
+``` {r summary ABV}
+sum_abv=summary(combined_data[["ABV"]])
+sum_abv
+```
+1
+``` {r correl graph}
+ggplot(combined_data,aes(x = ABV,y = IBU ))+geom_point(na.rm=TRUE)+geom_smooth(method=lm,se=FALSE, na.rm=TRUE)+
+  ggtitle("IBU vs ABV content per Alcohol")
+cor(na.omit(combined_data)[["ABV"]],na.omit(combined_data)[["IBU"]])
+```
+2
+
